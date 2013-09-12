@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>用户管理</title>
+    <link rel="stylesheet" href="{{static_url('css/themes/metro/easyui.css')}}">
+    <link rel="stylesheet" href="{{static_url('css/themes/icon.css')}}">
+    <style type="text/css">
+        body {
+            width: 90%;
+            background-color: #f5f5f5;
+        }
+        .form_div {
+            width: 90%;
+            margin: 0px auto;
+            margin-bottom: 10px;
+        }
+        .form_div input {
+            width: 90%;
+            height: 25px;
+            border: 1px solid #d3d3d3;
+            line-height: 25px;
+            /*font-size: 20px;*/
+        }
+        .form_div label {
+            width: 70%;
+            display: block;
+        }
+        .error {
+            width: 90%;
+            height: 30px;
+            background-color: #f08080;
+            margin: 0px auto;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            line-height: 30px;
+            display: none;
+        }
+        #searchForm {
+            border:1px solid #f5f5f5;
+            width: 90%;
+        }
+        #searchForm input{
+            border: 1px solid #add8e6;
+        }
+    </style>
+    <script type="text/javascript" src="{{static_url('js/jquery.min.js')}}"></script>
+    <script type="text/javascript" src="{{static_url('js/jquery.easyui.min.js')}}"></script>
+    <script type="text/javascript" src="{{static_url('js/easyui-lang-zh_CN.js')}}"></script>
+</head>
+<body>
+<table id="dg" class="easyui-datagrid" data-options="fitColumns:true,singleSelect:true,title:'人员管理',striped:true">
+</table>
+
+<!--add&&edit user-->
+<form style="display: none; overflow-x: hidden; overflow-y:auto;height:200px;" id="userForm" method="POST">
+    <div class="error" id="error">Error</div>
+    <div class="form_div">
+        <label>用户帐号</label>
+        <input type="hidden" name="id" id="id">
+        <input type="text" name="username" id="username" required class="easyui-validatebox">
+    </div>
+    <div class="form_div">
+        <label for="password">密  码</label>
+        <input type="password" name="password" id="password" required class="easyui-validatebox">
+    </div>
+    <div class="form_div">
+        <label for="status">用户类型</label>
+        <select id="status">
+            <option value="2" selected>普通用户</option>
+            <option value="1">管理员</option>
+        </select>
+    </div>
+    <div class="form_div">
+        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-ok'" id="submit">提交</a>
+        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-cancel'" id="cancel">取消</a>
+    </div>
+</form>
+
+<script type="text/javascript">
+    $('#dg').datagrid({
+        columns:[[
+            {field:'username',width:100, title: "用户姓名"},
+            {field:'status',width:50, title:"状态", formatter:function(value, row, index) {
+                if (value == "1") {
+                    return "管理员";
+                } else {
+                    return "普通用户";
+                }
+            }},
+            {field:'action',title:"操作", width: 50, align:"center", formatter:function(value, row, index) {
+                var detailLink = "<a href='javascript:void(0);' onclick=\"edit("+row.id+")\">编辑</a> ";
+                detailLink += "| <a href='javascript:void(0);' onclick=\"destroy("+row.id+")\">删除</a>";
+                return detailLink;
+            }}
+        ]],
+        toolbar: [{
+            text: "添加",
+            iconCls:'icon-save',
+            handler:function() {
+                add();
+            }
+        }],
+        pagination:true,
+        pageNumber:1,
+        pageSize:30,
+        method: 'get',
+        url: '/users',
+        loadMsg:"正在努力为您加载",
+        rownumbers:true,
+        height: 450
+    });
+
+    //add
+    function add() {
+        showUserDialog("userForm", "添加新用户");
+    }
+
+    //view
+    function edit(id) {
+        $.get("/user/"+id, function(data) {
+            showUserDialog("userForm", "编辑用户信息", data);
+        });
+    }
+
+    $("#submit").click(function() {
+        var username = $.trim($("#username").val());
+        var password = $.trim($("#password").val());
+        var status = $("#status").val();
+        if (username == null || username == "") {
+            $("#username").focus();
+            return;
+        }
+        if (password == null || password == "") {
+            $("#password").focus();
+            return;
+        }
+        var id = $.trim($("#id").val());
+        var link = '/user/update';
+        if (id == '') {
+            link = '/user/save';
+        }
+
+        var params = {
+            'id': id,
+            'username': username,
+            'password': password,
+            'status': status
+        }
+
+        $.post(link, params).done(function(data) {
+            if (data == "success") {
+                $.messager.show({
+                    title:'提示信息',
+                    msg:'操作成功',
+                    timeout:2000,
+                    showType:'slide'
+                });
+                $("#userForm").dialog("close");
+                $("#dg").datagrid("reload");
+            } else if (data == "exist") {
+                $("#userForm").dialog("close");
+                $.messager.alert('提示','用户名已经存在！','info');
+            } else {
+                $("#userForm").dialog("close");
+                $.messager.alert('提示','操作失败，请重试！','info');
+            }
+        });
+    });
+
+    $("#cancel").click(function() {
+        $("#userForm").dialog("close");
+    });
+
+    function showUserDialog(id, title, data) {
+        $("#"+id).show();
+        $("#"+id).dialog({
+            width:500,
+            height:370,
+            title:title,
+            resizable:true,
+            modal: true,
+            onClose: function() {
+                $(this).form("clear");
+                $("#status").val("1");
+            }
+        });
+        if (data != undefined && data != null) {
+            $("#"+id).form("load", data);
+        }
+    }
+
+    function clearSearchForm() {
+        $("#searchForm").form("clear");
+    }
+
+    function destroy(id) {
+        $.messager.confirm('确定？','你确定删除此项信息?',function(r){
+            if (r){
+                $.post("/user/"+id, function(data) {
+                    if (data == "success") {
+                        $.messager.show({
+                            title:'提示信息',
+                            msg:'删除成功',
+                            timeout:2000,
+                            showType:'slide'
+                        });
+                        $("#dg").datagrid("reload");
+                    } else {
+                        $.messager.alert('提示信息','删除信息失败！','info');
+                    }
+                });
+            }
+        });
+    }
+
+    function logout() {
+        window.location.href = "${ctx}/logout.jsp";
+    }
+</script>
+</body>
+</html>

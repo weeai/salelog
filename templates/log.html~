@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>用户管理</title>
+    <link rel="stylesheet" href="{{static_url('css/themes/metro/easyui.css')}}">
+    <link rel="stylesheet" href="{{static_url('css/themes/icon.css')}}">
+    <style type="text/css">
+        body {
+            width: 90%;
+            background-color: #f5f5f5;
+        }
+        .form_div {
+            width: 90%;
+            margin: 0px auto;
+            margin-bottom: 10px;
+        }
+        .form_div input {
+            width: 90%;
+            height: 25px;
+            border: 1px solid #d3d3d3;
+            line-height: 25px;
+            /*font-size: 20px;*/
+        }
+        .form_div label {
+            width: 70%;
+            display: block;
+        }
+        .error {
+            width: 90%;
+            height: 30px;
+            background-color: #f08080;
+            margin: 0px auto;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            line-height: 30px;
+            display: none;
+        }
+        #searchForm {
+            border:1px solid #f5f5f5;
+            width: 90%;
+        }
+        #searchForm input{
+            border: 1px solid #add8e6;
+        }
+    </style>
+    <script type="text/javascript" src="{{static_url('js/jquery.min.js')}}"></script>
+    <script type="text/javascript" src="{{static_url('js/jquery.easyui.min.js')}}"></script>
+    <script type="text/javascript" src="{{static_url('js/easyui-lang-zh_CN.js')}}"></script>
+</head>
+<body>
+<!--搜索-->
+<div style="margin-bottom: 10px;">
+    <div data-options="iconCls:'icon-search',collapsible:true" title="查询" class="easyui-panel" style="padding: 10px;">
+        <form id="searchForm" style="width: 800px;">
+            时间:<input class="easyui-datebox" type="text" name="logtime" id="logtime">&nbsp;&nbsp;
+	    信息:<input type="text" name="message" id="message">
+	    <input type="hidden" name="hidden_logtime" id="hidden_logtime">
+	    <input type="hidden" name="hidden_message" id="hidden_message">
+            <a href="javascript:void(0);" data-options="iconCls:'icon-search'" class="easyui-linkbutton" id="search">查 询</a>
+            <a href="javascript:void(0);" data-options="iconCls:'icon-undo'" class="easyui-linkbutton" id="reset">重 置</a>
+        </form>
+    </div>
+</div>
+<table id="dg" class="easyui-datagrid" data-options="fitColumns:true,singleSelect:true,title:'日志查询',striped:true"></table>
+<script type="text/javascript">
+    $('#dg').datagrid({
+        columns:[[
+            {field:'logtime',width:50, title: "时间"},
+            {field:'message', width:300, title: "信息", formatter:function(value, row, index) {
+                return "<a href='javascript:void(0)' style='color:grey;' title='"+value+"'>" + value + "</a>";
+            }},
+            {field:'action',title:"操作", width: 50, align:"center", formatter:function(value, row, index) {
+		var url = "/log/detail?id="+ row.id + "&logtime=" + encodeURI(row.logtime);
+                return "<a href='"+url+"' target='_blank'>详情</a> ";
+            }}
+        ]],
+        pagination:true,
+        pageNumber:1,
+        pageSize:30,
+        method: 'get',
+        url: '/logs',
+        queryParams: {
+            logtime: $("#hidden_logtime").val(),
+            message: $("#hidden_message").val()
+        },
+        loadMsg:"正在努力为您加载",
+        rownumbers:true,
+        height: 480
+    });
+
+    //load
+    $(function() {
+	    $("#reset").click(function() {
+	        $("#logtime").val("");
+	        $("#message").val('');
+	    });
+
+	    $("#search).click(function() {
+	        $("#hidden_logtime").val($("#logtime").val());
+	        $("#hidden_message").val($("#message").val());
+	        $('#dg').datagrid('reload'); 
+        });
+    });
+</script>
+</body>
+</html>

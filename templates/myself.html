@@ -1,0 +1,130 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>个人中心</title>
+    <link rel="stylesheet" href="{{static_url('css/themes/metro/easyui.css')}}">
+    <link rel="stylesheet" href="{{static_url('css/themes/icon.css')}}">
+    <style type="text/css">
+        body{
+            width: 90%;
+            background-color: #f5f5f5;
+        }
+        .form_div {
+            width: 90%;
+            margin: 0px auto;
+            margin-bottom: 10px;
+        }
+        .form_div input[type='text'],input[type='password'] {
+            width: 100%;
+            height: 25px;
+            border: 1px solid #d3d3d3;
+            /*font-weight: bold;*/
+            line-height: 25px;
+            font-size: 14px;
+            /*color: gray;*/
+        }
+        fieldset {
+            border: 1px solid #d3d3d3;
+            margin-top: 10px;
+            display: none;
+        }
+        legend{
+            color: gray;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        #userInfo a{
+            font-size: 10px;
+        }
+        .error {
+            width: 90%;
+            height: 30px;
+            background-color: #f08080;
+            margin: 0px auto;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            line-height: 30px;
+            display: none;
+        }
+        label {
+            color: #808080;
+        }
+
+        hr{
+            height:1px;
+            border:none;
+            border-top:1px solid #d3d3d3;
+        }
+    </style>
+    <script type="text/javascript" src="{{static_url('js/jquery.min.js')}}"></script>
+    <script type="text/javascript" src="{{static_url('js/jquery.easyui.min.js')}}"></script>
+    <script type="text/javascript" src="{{static_url('js/easyui-lang-zh_CN.js')}}"></script>
+</head>
+<body>
+<div class="easyui-accordion">
+    <div title="修改密码"  data-options="iconCls:'icon-undo'"  style="padding:10px;">
+        <form action="" method="POST" id="modifyPwdForm">
+            <div class="form_div">
+                <label for="newPassword">新密码</label>
+                <input type="password" name="newPwd" required="true" class="easyui-validatebox" id="newPassword">
+            </div>
+            <div class="form_div">
+                <label for="confirmPassword">确定新密码</label>
+                <input type="password" name="confirmPwd" required="true" class="easyui-validatebox" id="confirmPassword">
+            </div>
+            <div class="form_div">
+                <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-ok'" id="submitPwd">提交</a>
+            </div>
+        </form>
+    </div>
+</div>
+<script type="text/javascript">
+    function info() {
+        $("#userInfo").slideDown();
+    }
+
+    function hideUserInfo() {
+        $("#userInfo").slideUp();
+    }
+
+    $(function() {
+        $("#submitPwd").click(function() {
+            var newPwd = $.trim($("#newPassword").val());
+            var confirm = $.trim($("#confirmPassword").val());
+
+            if (newPwd == "") {
+                $("#newPassword").focus();
+                return false;
+            }
+
+            if (confirm == "") {
+                $("#confirmPassword").focus();
+                return false;
+            }
+
+            if (newPwd != confirm) {
+                $.messager.alert('提示','新密码和确认密码不匹配！','info');
+                $("#newPassword").focus();
+                return false;
+            }
+
+            var params = {
+                'id': "{{user['id']}}",
+                'newPwd': newPwd,
+                'confirmPwd': confirm
+            };
+
+            $.post("/myself/password", params, function(data) {
+                if (data == 'null') {
+                    $.messager.alert('提示','所有为必填项,不能为空','info');
+                } else if (data == 'notequal') {
+                    $.messager.alert('提示','新密码和确认密码不匹配！','info');
+                } else if (data == 'success') {
+                    $.messager.alert('提示','更新密码成功！','info');
+                }
+            }, 'text');
+        });
+    });
+</script>
+</body>
+</html>
