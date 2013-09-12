@@ -9,13 +9,9 @@ import torndb
 import tornado.web
 import tornado.httpserver
 import tornado.ioloop
-
+import model
 from tornado.options import define, options
 define("port", default=3000, help="running on the given port", type=int)
-define("host", default="localhost:3306", help="db host")
-define("database", default="logs", help="database name")
-define("user", default="root", help="db username")
-define("password", default="root", help="db password")
 
 
 class Application(tornado.web.Application):
@@ -43,12 +39,6 @@ class Application(tornado.web.Application):
             debug=True
         )
         tornado.web.Application.__init__(self, handlers=handlers, **settings)
-        self.db = torndb.Connection(
-            host=options.host,
-            database=options.database,
-            user=options.user,
-            password=options.password
-        )
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -63,9 +53,8 @@ class LoginHandler(BaseHandler):
     def post(self):
         username = self.get_argument('username')
         password = self.get_argument('password')
-        db = self.application.db
-        user = db.get("SELECT id, username, status FROM users WHERE username=%s and password=%s ", username, password)
-        print user
+        user = model.find_user_by_name_and_pwd(username, password)
+
         if user:
             user_cookie = tornado.escape.json_encode(user)
             self.set_secure_cookie("user", user_cookie)
@@ -95,38 +84,31 @@ class UserHandler(BaseHandler):
         self.render("user.html")
 
     def post(self, action):
-        db = self.application.db
         username = self.get_argument("username")
         password = self.get_argument("password")
         status = self.get_argument("status")
         if action == 'save':
-            user = db.get("SELECT username FROM users WHERE username = %s", username)
+            model.find_user_by_name(username)
             if user:
                 self.write("exist")
                 return
-            sql = "INSERT INTO users(username, password, status) VALUES(%s, %s, %s)"
-            db.execute(sql, username, password, status)
+            model.save_user(username, password, status)
             self.write("success")
         elif action == 'update':
             user_id = int(self.get_argument("id"))
-            sql = "UPDATE users SET username='%s', password='%s', status='%s' where id=%d" % (username, password, status, user_id)
-            db.execute(sql)
+            models.update(username, password, status, user_id)
             self.write("success")
 
 
 class UserDetailHandler(BaseHandler):
     def get(self, user_id):
-        db = self.application.db
-        sql = "SELECT id, username, status FROM users WHERE id=%d" % int(user_id)
-        user = db.get(sql)
+        user = models.find_user_by_id(user_id)
         self.set_header("Content-Type", "application/json;charset=utf-8")
         self.write(tornado.escape.json_encode(user))
         self.finish()
 
     def post(self, user_id):
-        db = self.application.db
-        sql = "DELETE FROM users where id = %d" % int(user_id)
-        db.execute(sql)
+        model.delete_user_by_id(user_id)
         self.write("success")
 
 
@@ -135,12 +117,8 @@ class UserListHandler(BaseHandler):
     def get(self):
         page = int(self.get_argument("page"))
         rows = int(self.get_argument("rows"))
-        start = (page -1) * rows
-        offset = start + rows
-        db = self.application.db
-        count = db.get("SELECT count(id) as count FROM users")
-        sql = "SELECT id, username, status FROM users ORDER BY id desc LIMIT %d, %d" % (start, offset)
-        users = db.query(sql)
+        count = model.user_count()
+        users = model.find_user_by_pagination(page, rows)
         self.set_header("Content-Type", "application/json;charset=utf-8")
         self.write(tornado.escape.json_encode({'total': count["count"], "rows": users}))
         self.finish()
@@ -160,9 +138,7 @@ class MySelfHandler(BaseHandler):
             self.write("null")
         elif pwd != confirm:
             self.write("notequal")
-        db = self.application.db
-        sql = "UPDATE users set password='%s' WHERE id=%d" % (pwd, int(user_id))
-        db.execute(sql)
+        model.update_user_password(pwd, int(user_id))
         self.write("success")
 
 
@@ -179,18 +155,9 @@ class LoggerQueryHandler(BaseHandler):
         rows = int(self.get_argument("rows"))
         logtime=self.get_argument('logtime', None)
         message = self.get_argument('message', None)
-        start = (page-1) * rows
-        offset = start + rows
-        db = self.application.db
-        count = db.get("SELECT count(*) as count FROM sales30_system_log")
-        sql = "SELECT id, logtime, message FROM sales30_system_log WHERE 1=1 "
-        if logtime:
-            sql += "logtime='%s' " % logtime
-        if message:
-            sql += " message like %'%s'%" % message
-        sql +=" ORDER BY logtime desc LIMIT %d, %d" % (start, offset)
-        print sql
-        rows = db.query(sql)
+        
+        count = model.log_count()
+        rows = model.find_log_by_pagination(page, rows, logtime, message)
         for log in rows:
             log['logtime'] = log['logtime'].strftime("%Y-%m-%d %H:%M:%S")
         self.set_header('Content-Type', "application/json;charset=utf-8")
@@ -201,13 +168,8 @@ class LogDetailHandler(BaseHandler):
     def get(self):
         log_id = int(self.get_argument('id'))
         logtime = self.get_argument("logtime")
-        db = self.application.db
-        sql = "SELECT * FROM sales30_system_log WHERE id = %d and logtime='%s'" % (log_id, logtime)
-        print sql
-        row = db.get(sql)
+        row = model.find_log_by_id_and_logtime(log_id, logtime)
         self.render('log_detail.html', log=row)
-
-
 
 
 if __name__ == '__main__':
