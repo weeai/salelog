@@ -70,8 +70,13 @@ def update_user_password(pwd, user_id):
 
 
 #log count
-def log_count():
-    return db.get("SELECT count(*) as count FROM sales30_system_log")
+def log_count(logtime=None, message=None):
+    sql = "SELECT count(*) as count FROM sales30_system_log WHERE 1=1"
+    if logtime:
+        sql += " AND logtime>='%s'" % logtime
+    if message:
+        sql += " AND message like '%%"+message+"%%'"
+    return db.get(sql)
 
 
 #find log by pagination
@@ -80,13 +85,13 @@ def find_log_by_pagination(page, rows, logtime=None, message=None):
     offset = start + rows
     sql = "SELECT id, logtime, message FROM sales30_system_log WHERE 1=1 "
     if logtime:
-        sql += "logtime='%s' " % logtime
+        sql += " AND logtime>='%s' " % logtime
     if message:
-        sql += " message like %'%s'%" % message
+        sql += " AND message like '%%"+message+"%%'"
 
     sql +=" ORDER BY logtime desc LIMIT %d, %d" % (start, offset)
+    print sql
     return db.query(sql)
-
 
 #find log by id and logtime
 def find_log_by_id_and_logtime(log_id, logtime):

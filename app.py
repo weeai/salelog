@@ -156,7 +156,7 @@ class LoggerQueryHandler(BaseHandler):
         logtime=self.get_argument('logtime', None)
         message = self.get_argument('message', None)
         
-        count = model.log_count()
+        count = model.log_count(logtime, message)
         rows = model.find_log_by_pagination(page, rows, logtime, message)
         for log in rows:
             log['logtime'] = log['logtime'].strftime("%Y-%m-%d %H:%M:%S")

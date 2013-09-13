@@ -80,10 +80,6 @@
         pageSize:30,
         method: 'get',
         url: '/logs',
-        queryParams: {
-            logtime: $("#hidden_logtime").val(),
-            message: $("#hidden_message").val()
-        },
         loadMsg:"正在努力为您加载",
         rownumbers:true,
         height: 480
@@ -97,10 +93,13 @@
 	    });
 
 	    $("#search").click(function() {
-	        $("#hidden_logtime").val($("#logtime").val());
+	        $("#hidden_logtime").val($("#logtime").datebox("getValue"));
 	        $("#hidden_message").val($("#message").val());
-	        $('#dg').datagrid('reload'); 
-        });
+	        $('#dg').datagrid('load', {
+		    logtime: $("#hidden_logtime").val(),
+		    message: $("#hidden_message").val()
+		}); 
+            });
     });
 </script>
 </body>
